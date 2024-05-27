@@ -1,4 +1,5 @@
 import numpy as np 
+from collections import Counter
 
 class LogisticRegression:
     def __init__(self, learning_rate: float = 0.001, n_iterations: int = 1000):
@@ -39,6 +40,29 @@ class LogisticRegression:
         return 1 / (1 + np.exp(-X))
     
 
+class KNN:
+    def __init__(self, k: int = 3):
+        self.k = k 
+        self.X_train = None 
+        self.y_train = None 
+
+    def fit(self, X_train: np.array, y_train: np.array):
+        self.X_train = X_train 
+        self.y_train = y_train 
+
+    def predict(self, X: np.array):
+        y_pred = [self._predict(x) for x in X]
+        return np.array(y_pred)
+    
+    def _predict(self, X: np.array):
+        distances = [np.sqrt(np.sum((x_train - X)**2)) for x_train in self.X_train]
+        k_indices = np.argsort(distances)[:self.k]
+
+        k_nearest_labels = [self.y_train[i] for i in k_indices]
+        most_common = Counter(k_nearest_labels).most_common(1)
+        return most_common[0][0]
+
+
 if __name__ == "__main__":
     X = np.random.rand(4, 2)
     y = np.array([1, 0, 0, 1])
@@ -53,3 +77,10 @@ if __name__ == "__main__":
     print("Predictions:\n", predicts)
     print("Bias:\n", logistic_regression.bias)
     print("Weights:\n", logistic_regression.weights)
+
+    print("\n", "-"*5, "K-Nearest Neighbors  ", "-"*5, "\n")
+    knn = KNN()
+    knn.fit(X, y)
+    predicts = knn.predict(X)
+    print("Predictions:\n", predicts)
+    print("K:\n", knn.k)
