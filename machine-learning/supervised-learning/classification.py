@@ -106,6 +106,40 @@ class NaiveBayes:
         numerator = np.exp(- (x - mean) ** 2 / (2 * var))
         denominator = np.sqrt(2 * np.pi * var)
         return numerator / denominator 
+    
+
+class SVM:
+    def __init__(self, 
+                 learning_rate: float = 1e-3, 
+                 lambda_param: float = 0.01, 
+                 n_iterations: int = 1000
+                 ):
+        self.learning_rate = learning_rate
+        self.lambda_param = lambda_param
+        self.n_iterations = n_iterations
+        self.weights = None 
+        self.bias = None 
+
+    def fit(self, X: np.array, y: np.array):
+        n_samples, n_features = X.shape 
+        y_ = np.where(y <= 0, -1, 1)
+
+        self.weights = np.zeros(n_features)
+        self.bias = 0 
+
+        for _ in range(self.n_iterations):
+            for idx, x_i in enumerate(X):
+                condition = y_[idx] * (np.dot(x_i, self.weights) - self.bias) >= 1
+                if condition:
+                    self.weights -= self.learning_rate * (2 * self.lambda_param * self.weights)
+                else:
+                    self.weights -= self.learning_rate * (2 * self.lambda_param * self.weights - 
+                                                          np.dot(x_i, y_[idx]))
+                    self.bias -= self.learning_rate * y_[idx]
+    
+    def predict(self, X: np.array) -> np.array:
+        linear_output = np.dot(X, self.weights) - self.bias 
+        return np.sign(linear_output)
 
 
 if __name__ == "__main__":
@@ -135,3 +169,11 @@ if __name__ == "__main__":
     naive_bayes.fit(X, y)
     predicts = naive_bayes.predict(X)
     print("Predictions:\n", predicts)
+
+    print("\n", "-"*5, "Support Vector Machine  ", "-"*5, "\n")
+    svm = SVM()
+    svm.fit(X, y)
+    predicts = svm.predict(X)
+    print("Predictions:\n", predicts)
+    print("Weights:\n", svm.weights)
+    print("Bias:\n", svm.bias)
