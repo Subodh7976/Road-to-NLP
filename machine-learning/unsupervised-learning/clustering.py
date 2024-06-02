@@ -91,6 +91,44 @@ class DBSCAN:
             if np.linalg.norm(X[point_idx] - X[i]) < self.eps:
                 neighbors.append(i)
         return neighbors
+
+class FuzzyCMeans:
+    def __init__(self, n_clusters: int = 3, max_iter: int = 150, 
+                 m: float = 2.0, tol: float = 1e-5):
+        self.n_clusters = n_clusters
+        self.max_iter = max_iter
+        self.m = m 
+        self.tol = tol 
+        self.centers = None 
+        self.u = None 
+
+    def fit(self, X: np.array):
+        n_samples = X.shape[0]
+        self.u = np.random.dirichlet(np.ones(self.n_clusters), size=n_samples)
+
+        for iteration in range(self.max_iter):
+            u_old = self.u.copy()
+            
+            self.centers = self._compute_centers(X)
+            self.u = self._update_u(X)
+            if np.linalg.norm(self.u - u_old) < self.tol:
+                break
+    
+    def fit_predict(self, X: np.array):
+        self.fit(X)
+        return np.argmax(self.u, axis=1)
+    
+    def _compute_centers(self, X: np.array):
+        um = self.u ** self.m 
+        return (um.T @ X) / um.sum(axis=0)[:, None]
+    
+    def _update_u(self, X: np.array):
+        power = 2 / (self.m - 1)
+        temp = np.zeros((X.shape[0], self.n_clusters))
+        for i in range(self.n_clusters):
+            for j in range(self.n_clusters):
+                temp[:, i] += (np.linalg.norm(X - self.centers[i], axis=1) / np.linalg.norm(X - self.centers[j], axis=1))
+        return 1 / temp 
     
 
 if __name__ == "__main__":
@@ -105,3 +143,7 @@ if __name__ == "__main__":
     print("-"*5, " DBSCAN ", "-"*5)
     dbscan = DBSCAN()
     print("Clusters:\n", dbscan.fit_predict(X))
+
+    print("-"*5, " Fuzzy C-Means ", "-"*5)
+    fuzzy_cmeans = FuzzyCMeans()
+    print("Clusters:\n", fuzzy_cmeans.fit_predict(X))
