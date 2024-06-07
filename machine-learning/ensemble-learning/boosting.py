@@ -39,6 +39,53 @@ class XGBoost:
     def _sigmoid(self, X: np.array):
         return 1 / (1 + np.exp(-X))
     
+class LightGBM:
+    def __init__(self, n_estimators: int = 100, learning_rate: float = 0.1, 
+                 max_depth: int = 3, min_samples_split: int = 2, reg_lambda: float = 1.0):
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.reg_lambda = reg_lambda
+        self.trees = []
+        self.leaves = []
+
+    def fit(self, X: np.array, y: np.array):
+        y_pred = np.full(y.shape, np.mean(y))
+        for _ in range(self.n_estimators):
+            residuals = y - self._sigmoid(y_pred)
+
+            tree = DecisionTreeRegressor(max_depth=self.max_depth, 
+                                         min_samples_split=self.min_samples_split)
+            tree.fit(X, residuals)
+            self.trees.append(tree)
+
+            leaf_indices = tree.apply(X)
+            leaves = np.unique(leaf_indices)
+            self.leaves.append((leaves, leaf_indices))
+
+            update = tree.predict(X)
+            y_pred += self.learning_rate * update 
+    
+    def predict_proba(self, X: np.array):
+        y_pred = np.zeros(X.shape[0])
+        for tree, (leaves, leaf_indices) in zip(self.trees, self.leaves):
+            leaf_indices_test = tree.apply(X)
+
+            leaf_preds = np.zeros(X.shape[0])
+            for leaf in leaves:
+                leaf_value = np.mean([tree.predict(X[leaf_indices == leaf])])
+                leaf_preds[leaf_indices_test == leaf] = leaf_value
+            y_pred += self.learning_rate * leaf_preds
+        return self._sigmoid(y_pred)
+    
+    def predict(self, X: np.array):
+        proba = self.predict_proba(X)
+        return np.where(proba >= 0.5, 1, 0)
+    
+    def _sigmoid(self, X: np.array):
+        return 1 / (1 + np.exp(-X))
+
 
 if __name__ == "__main__":
     X = np.random.randn(4, 2)
@@ -51,3 +98,9 @@ if __name__ == "__main__":
     xg = XGBoost()
     xg.fit(X, y)
     print("Predictions:\n", xg.predict(X))
+
+    print("\n")
+    print("-"*5, " LightGBM ", "-"*5)
+    lg = LightGBM()
+    lg.fit(X, y)
+    print("Predictions:\n", lg.predict(X))
