@@ -51,4 +51,51 @@ class BCELoss(nn.Module):
             return loss.sum()
         else:
             return loss 
+
+class NLLLoss(nn.Module):
+    def __init__(self, weight=None, reduction: str = "mean"):
+        super(NLLLoss, self).__init__()
+        self.weight = weight
+        self.reduction = reduction
+
+    def forward(self, input: torch.tensor, target: torch.tensor):
+        if self.weight is not None:
+            loss = -torch.gather(input, dim=-1, index=target.unsqueeze(-1)).squeeze(-1) * self.weight[target]
+        else:
+            loss = -torch.gather(input, dim=-1, index=target.unsqueeze(-1)).squeeze(-1)
+
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        else:
+            return loss 
         
+class HingeLoss(nn.Module):
+    def __init__(self, reduction: str = "mean"):
+        super(HingeLoss, self).__init__()
+        self.reduction = reduction
+    
+    def forward(self, input: torch.tenosr, target: torch.tensor):
+        target = target.float()
+        loss = torch.clamp(1 - input * target, min=0)
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        else: 
+            return loss 
+        
+class KLDivergenceLoss(nn.Module):
+    def __init__(self, reduction: str == "mean"):
+        super(KLDivergenceLoss, self).__init__()
+        self.reduction = reduction
+    
+    def forward(self, input: torch.tensor, target: torch.tensor):
+        loss = target * (torch.log(target) - torch.log(input))
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        else:
+            return loss 
